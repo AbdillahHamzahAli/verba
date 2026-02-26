@@ -139,7 +139,7 @@ function ChatPageInner() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col" style={{ height: "calc(100vh - 3.5rem)" }}>
       {/* Header */}
       <header className="border-b border-border/60 bg-card/50 backdrop-blur-xl px-6 py-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between">

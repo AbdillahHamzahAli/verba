@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { Navbar } from "@/components/navbar";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -28,7 +29,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={cn("dark", jetbrainsMono.variable)}>
-      <body className={`${geistSans.variable} font-sans`}>{children}</body>
+      <body className={`${geistSans.variable} font-sans`}>
+        <Navbar />
+        <div className="pt-14">{children}</div>
+      </body>
     </html>
   );
 }

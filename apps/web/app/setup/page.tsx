@@ -13,7 +13,6 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Key01Icon,
   ArrowRight01Icon,
-  Database02Icon,
   SparklesIcon,
   Shield01Icon,
   Delete02Icon,
@@ -112,27 +111,6 @@ export default function SetupPage() {
         className="relative w-full max-w-lg"
         style={{ animation: "fade-in 0.6s ease-out" }}
       >
-        {/* Logo & Title */}
-        <div className="text-center mb-10">
-          <div
-            className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary/10 border border-primary/20 mb-6"
-            style={{ animation: "pulse-glow 3s ease-in-out infinite" }}
-          >
-            <HugeiconsIcon
-              icon={Database02Icon}
-              className="w-10 h-10 text-primary"
-            />
-          </div>
-          <h1 className="text-4xl font-bold tracking-tight mb-3">
-            Welcome to Verba
-          </h1>
-          <p className="text-muted-foreground text-lg leading-relaxed">
-            Your self-hosted AI SQL Agent.
-            <br />
-            Connect your databases, ask questions in natural language.
-          </p>
-        </div>
-
         {/* Add API Key Card */}
         <Card className="border-border/60 bg-card/70 backdrop-blur-xl p-6">
           <CardHeader>
@@ -240,7 +218,7 @@ export default function SetupPage() {
                     setError("");
                   }}
                   placeholder="Label (e.g. Personal)"
-                  className="h-10 bg-background/50 flex-[2]"
+                  className="h-10 bg-background/50 flex-2"
                 />
                 <Input
                   type="password"
@@ -250,7 +228,7 @@ export default function SetupPage() {
                     setError("");
                   }}
                   placeholder="AIza..."
-                  className="h-10 bg-background/50 flex-[3]"
+                  className="h-10 bg-background/50 flex-3"
                 />
               </div>
               {error && (
