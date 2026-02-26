@@ -13,10 +13,18 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "express": "^5.1.0",
+    "@langchain/core": "^1.1.28",
+    "@langchain/google-genai": "^2.1.20",
+    "@langchain/langgraph": "^1.1.5",
     "cors": "^2.8.5",
+    "crypto-js": "^4.2.0",
     "drizzle-orm": "^0.44.2",
-    "crypto-js": "^4.2.0"
+    "express": "^5.1.0",
+    "langchain": "^1.2.27",
+    "mysql2": "^3.18.1",
+    "pg": "^8.19.0",
+    "typeorm": "^0.3.28",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/express": "^5.0.2",

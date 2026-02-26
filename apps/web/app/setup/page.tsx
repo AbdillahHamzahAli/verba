@@ -1,12 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { saveApiKey } from "@/lib/api";
-import { KeyRound, ArrowRight, Database, Sparkles, Shield } from "lucide-react";
+import {
+  addApiKey,
+  getApiKeys,
+  activateApiKey,
+  deleteApiKey,
+  type ApiKeyInfo,
+} from "@/lib/api";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Key01Icon,
+  ArrowRight01Icon,
+  Database02Icon,
+  SparklesIcon,
+  Shield01Icon,
+  Delete02Icon,
+  CheckmarkBadge01Icon,
+  PlusSignIcon,
+} from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -20,13 +37,31 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 export default function SetupPage() {
   const router = useRouter();
   const [apiKey, setApiKey] = useState("");
+  const [label, setLabel] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [keys, setKeys] = useState<ApiKeyInfo[]>([]);
+  const [loadingKeys, setLoadingKeys] = useState(true);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const loadKeys = useCallback(async () => {
+    try {
+      const result = await getApiKeys();
+      setKeys(result);
+    } catch {
+      // Ignore
+    } finally {
+      setLoadingKeys(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadKeys();
+  }, [loadKeys]);
+
+  const handleAddKey = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!apiKey.trim()) {
-      setError("Please enter your API key");
+    if (!apiKey.trim() || !label.trim()) {
+      setError("Please enter both a label and API key");
       return;
     }
 
@@ -34,14 +69,36 @@ export default function SetupPage() {
     setError("");
 
     try {
-      await saveApiKey(apiKey);
-      router.push("/connections");
+      await addApiKey(label.trim(), apiKey.trim());
+      setApiKey("");
+      setLabel("");
+      await loadKeys();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save API key");
+      setError(err instanceof Error ? err.message : "Failed to add API key");
     } finally {
       setLoading(false);
     }
   };
+
+  const handleActivate = async (keyLabel: string) => {
+    try {
+      await activateApiKey(keyLabel);
+      await loadKeys();
+    } catch {
+      setError("Failed to activate API key");
+    }
+  };
+
+  const handleDelete = async (keyLabel: string) => {
+    try {
+      await deleteApiKey(keyLabel);
+      await loadKeys();
+    } catch {
+      setError("Failed to delete API key");
+    }
+  };
+
+  const hasActiveKey = keys.some((k) => k.active);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
@@ -61,7 +118,10 @@ export default function SetupPage() {
             className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary/10 border border-primary/20 mb-6"
             style={{ animation: "pulse-glow 3s ease-in-out infinite" }}
           >
-            <Database className="w-10 h-10 text-primary" />
+            <HugeiconsIcon
+              icon={Database02Icon}
+              className="w-10 h-10 text-primary"
+            />
           </div>
           <h1 className="text-4xl font-bold tracking-tight mb-3">
             Welcome to Verba
@@ -73,28 +133,116 @@ export default function SetupPage() {
           </p>
         </div>
 
-        {/* Setup Card */}
-        <Card className="border-border/60 bg-card/70 backdrop-blur-xl">
+        {/* Add API Key Card */}
+        <Card className="border-border/60 bg-card/70 backdrop-blur-xl p-6">
           <CardHeader>
             <div className="flex items-center gap-3">
               <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
-                <KeyRound className="w-5 h-5 text-primary" />
+                <HugeiconsIcon
+                  icon={Key01Icon}
+                  className="w-5 h-5 text-primary"
+                />
               </div>
               <div>
-                <CardTitle className="text-lg">Connect your AI</CardTitle>
+                <CardTitle className="text-lg">API Keys</CardTitle>
                 <CardDescription>
-                  Enter your Google Gemini API key to get started
+                  Add and manage your Google Gemini API keys
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
 
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-5" id="setup-form">
+          <CardContent className="space-y-5">
+            {/* Existing Keys List */}
+            {!loadingKeys && keys.length > 0 && (
               <div className="space-y-2">
-                <Label htmlFor="api-key">Gemini API Key</Label>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Stored Keys
+                </Label>
+                <div className="space-y-2">
+                  {keys.map((k) => (
+                    <div
+                      key={k.label}
+                      className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                        k.active
+                          ? "border-primary/40 bg-primary/5"
+                          : "border-border/40 bg-muted/20"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex flex-col min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium truncate">
+                              {k.label}
+                            </span>
+                            {k.active && (
+                              <Badge
+                                variant="default"
+                                className="text-[10px] px-1.5 py-0"
+                              >
+                                active
+                              </Badge>
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {k.masked}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {!k.active && (
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={() => handleActivate(k.label)}
+                            className="text-muted-foreground hover:text-primary cursor-pointer"
+                            title="Activate"
+                          >
+                            <HugeiconsIcon
+                              icon={CheckmarkBadge01Icon}
+                              className="w-3.5 h-3.5"
+                            />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={() => handleDelete(k.label)}
+                          className="text-muted-foreground hover:text-destructive cursor-pointer"
+                          title="Delete"
+                        >
+                          <HugeiconsIcon
+                            icon={Delete02Icon}
+                            className="w-3.5 h-3.5"
+                          />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add Key Form */}
+            <form
+              onSubmit={handleAddKey}
+              className="space-y-3"
+              id="add-key-form"
+            >
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                Add New Key
+              </Label>
+              <div className="flex gap-2">
                 <Input
-                  id="api-key"
+                  value={label}
+                  onChange={(e) => {
+                    setLabel(e.target.value);
+                    setError("");
+                  }}
+                  placeholder="Label (e.g. Personal)"
+                  className="h-10 bg-background/50 flex-[2]"
+                />
+                <Input
                   type="password"
                   value={apiKey}
                   onChange={(e) => {
@@ -102,33 +250,41 @@ export default function SetupPage() {
                     setError("");
                   }}
                   placeholder="AIza..."
-                  className="h-11 bg-background/50"
+                  className="h-10 bg-background/50 flex-[3]"
                 />
-                {error && (
-                  <Alert variant="destructive" className="py-2">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
               </div>
+              {error && (
+                <Alert variant="destructive" className="py-2">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              <Button
+                type="submit"
+                variant="secondary"
+                disabled={loading || !apiKey.trim() || !label.trim()}
+                className="w-full h-9 text-sm cursor-pointer"
+              >
+                {loading ? (
+                  <div className="w-4 h-4 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <HugeiconsIcon icon={PlusSignIcon} className="w-4 h-4" />
+                    Add Key
+                  </>
+                )}
+              </Button>
             </form>
           </CardContent>
 
           <CardFooter className="flex flex-col gap-4">
             <Button
-              type="submit"
-              form="setup-form"
-              disabled={loading || !apiKey.trim()}
+              onClick={() => router.push("/connections")}
+              disabled={!hasActiveKey}
               className="w-full h-11 text-sm font-semibold cursor-pointer"
               size="lg"
             >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  Continue
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
+              Continue
+              <HugeiconsIcon icon={ArrowRight01Icon} className="w-4 h-4" />
             </Button>
 
             <p className="text-xs text-muted-foreground text-center">
@@ -148,13 +304,19 @@ export default function SetupPage() {
         {/* Feature highlights */}
         <div className="mt-8 grid grid-cols-2 gap-4">
           <Card className="flex-row items-center gap-3 p-4 py-4 border-border/40 bg-card/40">
-            <Sparkles className="w-5 h-5 text-primary shrink-0" />
+            <HugeiconsIcon
+              icon={SparklesIcon}
+              className="w-5 h-5 text-primary shrink-0"
+            />
             <p className="text-sm text-muted-foreground">
               Natural language to SQL
             </p>
           </Card>
           <Card className="flex-row items-center gap-3 p-4 py-4 border-border/40 bg-card/40">
-            <Shield className="w-5 h-5 text-success shrink-0" />
+            <HugeiconsIcon
+              icon={Shield01Icon}
+              className="w-5 h-5 text-success shrink-0"
+            />
             <p className="text-sm text-muted-foreground">
               Read-only, safe queries
             </p>

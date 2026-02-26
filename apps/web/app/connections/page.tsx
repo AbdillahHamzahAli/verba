@@ -6,18 +6,21 @@ import {
   getConnections,
   createConnection,
   deleteConnection,
+  testConnection,
   type Connection,
   type ConnectionInput,
 } from "@/lib/api";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  Database,
-  Plus,
-  Trash2,
-  Server,
-  MessageSquare,
-  X,
-  ChevronRight,
-} from "lucide-react";
+  Database02Icon,
+  PlusSignIcon,
+  Delete02Icon,
+  ServerStack01Icon,
+  BubbleChatIcon,
+  Cancel01Icon,
+  ArrowRight01Icon,
+  Plug01Icon,
+} from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,6 +59,10 @@ export default function ConnectionsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [testingId, setTestingId] = useState<number | null>(null);
+  const [testResults, setTestResults] = useState<
+    Record<number, { success: boolean; error?: string }>
+  >({});
 
   const loadConnections = useCallback(async () => {
     try {
@@ -108,6 +115,27 @@ export default function ConnectionsPage() {
     }
   };
 
+  const handleTest = async (id: number) => {
+    setTestingId(id);
+    try {
+      const result = await testConnection(id);
+      setTestResults((prev) => ({
+        ...prev,
+        [id]: {
+          success: result.success,
+          error: result.success ? undefined : "Connection failed",
+        },
+      }));
+    } catch {
+      setTestResults((prev) => ({
+        ...prev,
+        [id]: { success: false, error: "Connection failed" },
+      }));
+    } finally {
+      setTestingId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen p-6 md:p-10">
       <div className="max-w-4xl mx-auto">
@@ -115,7 +143,10 @@ export default function ConnectionsPage() {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 border border-primary/20">
-              <Database className="w-5 h-5 text-primary" />
+              <HugeiconsIcon
+                icon={Database02Icon}
+                className="w-5 h-5 text-primary"
+              />
             </div>
             <div>
               <h1 className="text-2xl font-bold">Connections</h1>
@@ -128,7 +159,7 @@ export default function ConnectionsPage() {
             onClick={() => setShowForm(!showForm)}
             className="cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
+            <HugeiconsIcon icon={PlusSignIcon} className="w-4 h-4" />
             Add Connection
           </Button>
         </div>
@@ -156,7 +187,7 @@ export default function ConnectionsPage() {
                   }}
                   className="cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
+                  <HugeiconsIcon icon={Cancel01Icon} className="w-4 h-4" />
                 </Button>
               </div>
             </CardHeader>
@@ -293,7 +324,7 @@ export default function ConnectionsPage() {
                     <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <>
-                      <Plus className="w-4 h-4" />
+                      <HugeiconsIcon icon={PlusSignIcon} className="w-4 h-4" />
                       Create Connection
                     </>
                   )}
@@ -314,7 +345,10 @@ export default function ConnectionsPage() {
             style={{ animation: "fade-in 0.5s ease-out" }}
           >
             <div className="w-16 h-16 rounded-2xl bg-muted border border-border flex items-center justify-center mb-5">
-              <Server className="w-8 h-8 text-muted-foreground" />
+              <HugeiconsIcon
+                icon={ServerStack01Icon}
+                className="w-8 h-8 text-muted-foreground"
+              />
             </div>
             <h3 className="text-lg font-semibold mb-2">No connections yet</h3>
             <p className="text-muted-foreground text-sm mb-6 max-w-sm text-center">
@@ -325,7 +359,7 @@ export default function ConnectionsPage() {
               onClick={() => setShowForm(true)}
               className="cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
+              <HugeiconsIcon icon={PlusSignIcon} className="w-4 h-4" />
               Add Your First Connection
             </Button>
           </Card>
@@ -339,7 +373,10 @@ export default function ConnectionsPage() {
               >
                 <div className="flex items-center gap-4">
                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
-                    <Database className="w-5 h-5 text-primary" />
+                    <HugeiconsIcon
+                      icon={Database02Icon}
+                      className="w-5 h-5 text-primary"
+                    />
                   </div>
                   <div>
                     <h3 className="font-semibold">{conn.name}</h3>
@@ -355,15 +392,46 @@ export default function ConnectionsPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {testResults[conn.id] != null && (
+                    <Badge
+                      variant={
+                        testResults[conn.id]?.success
+                          ? "default"
+                          : "destructive"
+                      }
+                      className="text-xs"
+                    >
+                      {testResults[conn.id]?.success
+                        ? "✓ Connected"
+                        : "✗ Failed"}
+                    </Badge>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleTest(conn.id)}
+                    disabled={testingId === conn.id}
+                    className="cursor-pointer"
+                  >
+                    {testingId === conn.id ? (
+                      <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <HugeiconsIcon icon={Plug01Icon} className="w-4 h-4" />
+                    )}
+                    Test
+                  </Button>
                   <Button
                     variant="secondary"
                     size="sm"
                     onClick={() => router.push(`/chat?connectionId=${conn.id}`)}
                     className="cursor-pointer"
                   >
-                    <MessageSquare className="w-4 h-4" />
+                    <HugeiconsIcon icon={BubbleChatIcon} className="w-4 h-4" />
                     Chat
-                    <ChevronRight className="w-3 h-3" />
+                    <HugeiconsIcon
+                      icon={ArrowRight01Icon}
+                      className="w-3 h-3"
+                    />
                   </Button>
                   <Button
                     variant="ghost"
@@ -375,7 +443,7 @@ export default function ConnectionsPage() {
                     {deletingId === conn.id ? (
                       <div className="w-4 h-4 border-2 border-destructive border-t-transparent rounded-full animate-spin" />
                     ) : (
-                      <Trash2 className="w-4 h-4" />
+                      <HugeiconsIcon icon={Delete02Icon} className="w-4 h-4" />
                     )}
                   </Button>
                 </div>

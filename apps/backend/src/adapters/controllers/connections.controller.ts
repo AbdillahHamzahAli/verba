@@ -2,11 +2,13 @@ import { Router } from "express";
 import type { CreateConnectionUseCase } from "../../use-cases/connections/create-connection.use-case";
 import type { ListConnectionsUseCase } from "../../use-cases/connections/list-connections.use-case";
 import type { DeleteConnectionUseCase } from "../../use-cases/connections/delete-connection.use-case";
+import type { TestConnectionUseCase } from "../../use-cases/connections/test-connection.use-case";
 
 export function createConnectionsController(
   createConnection: CreateConnectionUseCase,
   listConnections: ListConnectionsUseCase,
   deleteConnection: DeleteConnectionUseCase,
+  testConnection: TestConnectionUseCase,
 ): Router {
   const router = Router();
 
@@ -81,6 +83,28 @@ export function createConnectionsController(
       res.json({ success: true, message: "Connection deleted" });
     } catch (error) {
       console.error("Error deleting connection:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // POST /api/connections/:id/test
+  router.post("/:id/test", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid ID" });
+        return;
+      }
+
+      const result = await testConnection.execute(id);
+      if (!result.success) {
+        res.status(422).json({ success: false, error: result.error });
+        return;
+      }
+
+      res.json({ success: true, message: "Connection successful" });
+    } catch (error) {
+      console.error("Error testing connection:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });

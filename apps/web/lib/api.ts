@@ -20,6 +20,50 @@ export async function saveApiKey(apiKey: string): Promise<void> {
   }
 }
 
+// ─── Multi API Key Management ───────────────────────
+
+export interface ApiKeyInfo {
+  label: string;
+  masked: string;
+  length: number;
+  active: boolean;
+  createdAt: string;
+}
+
+export async function getApiKeys(): Promise<ApiKeyInfo[]> {
+  const res = await fetch(`${API_BASE}/api/setup/api-keys`);
+  if (!res.ok) throw new Error("Failed to fetch API keys");
+  return res.json();
+}
+
+export async function addApiKey(label: string, apiKey: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/setup/api-keys`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ label, apiKey }),
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || "Failed to add API key");
+  }
+}
+
+export async function activateApiKey(label: string): Promise<void> {
+  const res = await fetch(
+    `${API_BASE}/api/setup/api-keys/${encodeURIComponent(label)}/activate`,
+    { method: "PUT" },
+  );
+  if (!res.ok) throw new Error("Failed to activate API key");
+}
+
+export async function deleteApiKey(label: string): Promise<void> {
+  const res = await fetch(
+    `${API_BASE}/api/setup/api-keys/${encodeURIComponent(label)}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) throw new Error("Failed to delete API key");
+}
+
 // ─── Connections ────────────────────────────────────
 
 export interface ConnectionInput {
@@ -79,4 +123,65 @@ export async function testConnection(
     method: "POST",
   });
   return res.json();
+}
+
+// ─── Chat (SSE Streaming) ──────────────────────────
+
+export interface ChatEvent {
+  type: "thought" | "tool_call" | "tool_result" | "answer" | "error" | "done";
+  content: string;
+}
+
+export async function* streamChat(
+  connectionId: number,
+  question: string,
+): AsyncGenerator<ChatEvent> {
+  const res = await fetch(`${API_BASE}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ connectionId, question }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to start chat stream");
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) throw new Error("No response body");
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    // Parse SSE events from buffer
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || ""; // Keep incomplete line in buffer
+
+    let currentEventType = "";
+
+    for (const line of lines) {
+      if (line.startsWith("event: ")) {
+        currentEventType = line.slice(7).trim();
+      } else if (line.startsWith("data: ") && currentEventType) {
+        try {
+          const data = JSON.parse(line.slice(6));
+          if (currentEventType === "done") {
+            return;
+          }
+          yield {
+            type: currentEventType as ChatEvent["type"],
+            content: data.content || "",
+          };
+        } catch {
+          // Skip malformed JSON
+        }
+        currentEventType = "";
+      }
+    }
+  }
 }

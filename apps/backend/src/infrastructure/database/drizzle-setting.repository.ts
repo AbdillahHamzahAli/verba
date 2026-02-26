@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, like } from "drizzle-orm";
 import type { BunSQLiteDatabase } from "drizzle-orm/bun-sqlite";
 import type { ISettingRepository } from "../../domain/repositories/setting.repository";
 import type { SystemSetting } from "../../domain/entities/system-setting.entity";
@@ -27,6 +27,21 @@ export class DrizzleSettingRepository implements ISettingRepository {
     };
   }
 
+  async getByPrefix(prefix: string): Promise<SystemSetting[]> {
+    const rows = await this.db
+      .select()
+      .from(systemSettings)
+      .where(like(systemSettings.key, `${prefix}%`));
+
+    return rows.map((row) => ({
+      id: row.id,
+      key: row.key,
+      value: row.value,
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    }));
+  }
+
   async upsert(key: string, value: string): Promise<void> {
     await this.db
       .insert(systemSettings)
@@ -35,5 +50,12 @@ export class DrizzleSettingRepository implements ISettingRepository {
         target: systemSettings.key,
         set: { value },
       });
+  }
+
+  async delete(key: string): Promise<boolean> {
+    const existing = await this.getByKey(key);
+    if (!existing) return false;
+    await this.db.delete(systemSettings).where(eq(systemSettings.key, key));
+    return true;
   }
 }
