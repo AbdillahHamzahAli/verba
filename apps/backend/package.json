@@ -1,0 +1,29 @@
+{
+  "name": "backend",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun --watch src/main.ts",
+    "build": "bun build src/main.ts --outdir dist --target bun",
+    "start": "bun dist/main.js",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "lint": "eslint --max-warnings 0",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "cors": "^2.8.5",
+    "drizzle-orm": "^0.44.2",
+    "crypto-js": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.2",
+    "@types/cors": "^2.8.17",
+    "@types/crypto-js": "^4.2.2",
+    "@types/bun": "^1.2.5",
+    "drizzle-kit": "^0.31.1",
+    "typescript": "5.9.2"
+  }
+}
